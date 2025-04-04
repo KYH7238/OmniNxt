@@ -363,3 +363,6 @@ In ~/nv_src/Linux_for_Tegra/source/kernel_out/arch/arm64/boot/dts/nvidia folder,
 <Jetson Orin NX>
 cd ../.. && cd boot/dtb
 Change the origin file to tegra234-p3767-0000-p3768-0000-a0.dtb
+
+Then you can you uart port
+In my case /dev/ttyTHS0,3 (baud 921600)
