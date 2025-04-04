@@ -227,4 +227,139 @@ Please cite ZJU-Fast-Lab's [ego-planner](https://github.com/ZJU-FAST-Lab/ego-pla
 
 
 ## 💯Acknowledgment
+for UART and USB 
 
+<LOCAL(HOST) PC>
+
+https://www.cnblogs.com/SkyXZ/p/18572123
+
+![alt text](image.png)
+```shell
+mkdir -p $HOME/nv_src 
+Extract 2 download files to ~/nv_src
+export CROSS_COMPILE_AARCH64_PATH=$HOME/nv_src/aarch64--glibc--stable-final
+export CROSS_COMPILE=$HOME/nv_src/aarch64--glibc--stable-final/bin/aarch64-buildroot-linux-gnu-
+cd ~/nv_src/Linux_for_Tegra/source
+mkdir -p kernel_out
+./nvbuild.sh -o $PWD/kernel_out
+cd ~/nv_src/Linux_for_Tegra/source/hardware/nvidia/platform/t23x/p3768/kernel-dts/cvb/
+change tegra234-p3768-0000-a0.dtsi this file:
+
+```
+
+
+> serial@3100000 {/* UARTA, for 40 pin header */
+		status = "okay";
+	};
+
+	/* 增加下面这部分开启串口1 */
+	serial@3110000 {/* Enable UART1 */
+		status = "okay";
+	};
+	
+	/* ......  */
+	
+	/* 找到这部分，并按照下面的修改，增加usb2-2和usb3-2，用于开启额外的USB3.0 */
+	xusb_padctl: xusb_padctl@3520000 {
+		status = "okay";
+		pads {
+			usb2 {
+				lanes {
+					usb2-0 {
+						nvidia,function = "xusb";
+						status = "okay";
+					};
+					usb2-1 {
+						nvidia,function = "xusb";
+						status = "okay";
+					};
+					usb2-2 {
+						nvidia,function = "xusb";
+						status = "okay";
+					};
+				};
+			};
+			usb3 {
+				lanes {
+					usb3-0 {
+						nvidia,function = "xusb";
+						status = "okay";
+					};
+					usb3-1 {
+						nvidia,function = "xusb";
+						status = "okay";
+					};
+					usb3-2 {
+						nvidia,function = "xusb";
+						status = "okay";
+					};
+				};
+			};
+		};
+
+		ports {
+			usb2-0 {/* Goes to recovery port */
+				mode = "otg";
+				status = "okay";
+				vbus-supply = <&p3768_vdd_5v_sys>;
+				usb-role-switch;
+				port {
+					typec_p0: endpoint {
+						remote-endpoint = <&fusb_p0>;
+					};
+				};
+			};
+			usb2-1 {/* Goes to hub */
+				mode = "host";
+				vbus-supply = <&p3768_vdd_av10_hub>;
+				status = "okay";
+			};
+			usb2-2 {/* Goes to M2.E */
+				mode = "host";
+				vbus-supply = <&p3768_vdd_5v_sys>;
+				status = "okay";
+			};
+			usb3-0 {/* Goes to hub */
+				nvidia,usb2-companion = <1>;
+				status = "okay";
+			};
+			usb3-1 {/* Goes to J5 */
+				nvidia,usb2-companion = <0>;
+				status = "okay";
+			};
+			usb3-2 {/* Goes to J5 */
+				nvidia,usb2-companion = <2>;
+				status = "okay";
+			};
+		};
+	};
+
+	tegra_xudc: xudc@3550000 {
+		status = "okay";
+		phys = <&{/xusb_padctl@3520000/pads/usb2/lanes/usb2-0}>,
+			<&{/xusb_padctl@3520000/pads/usb3/lanes/usb3-1}>;
+		phy-names = "usb2-0", "usb3-1";
+		nvidia,xusb-padctl = <&xusb_padctl>;
+	};
+
+	tegra_xhci: xhci@3610000 {
+		status = "okay";
+		phys = <&{/xusb_padctl@3520000/pads/usb2/lanes/usb2-0}>,
+			<&{/xusb_padctl@3520000/pads/usb2/lanes/usb2-1}>,
+			<&{/xusb_padctl@3520000/pads/usb2/lanes/usb2-2}>,
+			<&{/xusb_padctl@3520000/pads/usb3/lanes/usb3-0}>,
+			<&{/xusb_padctl@3520000/pads/usb3/lanes/usb3-1}>,
+			<&{/xusb_padctl@3520000/pads/usb3/lanes/usb3-2}>;
+		phy-names = "usb2-0", "usb2-1", "usb2-2", "usb3-0", "usb3-1", "usb3-2";
+		nvidia,xusb-padctl = <&xusb_padctl>;
+	};
+
+```shell
+cd kernel_src
+./nvbuild.sh -o $PWD/kernel_out
+
+In ~/nv_src/Linux_for_Tegra/source/kernel_out/arch/arm64/boot/dts/nvidia folder, copy tegra234-p3767-0000-p3768-0000-a0.dtb file usb.
+
+<Jetson Orin NX>
+cd ../.. && cd boot/dtb
+Change the origin file to tegra234-p3767-0000-p3768-0000-a0.dtb
